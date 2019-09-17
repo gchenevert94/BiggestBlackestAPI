@@ -1,0 +1,17 @@
+type Set {
+    Id: ID!
+    Name: String!
+}
+
+type Card {
+    Id: ID!
+    IsBlack: Boolean!
+    Set: Set!
+    Text: String!
+}
+
+type Query {
+    getSets: [Set!]!
+    getCardsBySetName(sets: [String]): [Card!]!
+    getCardsBySetId(sets: [ID]): [Card!]!
+}
