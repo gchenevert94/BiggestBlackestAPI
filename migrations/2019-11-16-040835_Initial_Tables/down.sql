@@ -1,7 +1,11 @@
+DROP PROCEDURE "bb"."GetCardsByDeck";
+DROP PROCEDURE "bb"."GetDecks";
+DROP PROCEDURE "bb"."GetCardById";
 DROP PROCEDURE "bb"."DrawNthCard";
 DROP PROCEDURE "bb"."GetCardRange";
 DROP TYPE "bb"."IdTable";
 DROP TABLE "bb"."DrawCard";
 DROP TABLE "bb"."Card";
 DROP TABLE "bb"."ParentSet";
+DROP TABLE "bb"."User";
 DROP SCHEMA "bb";

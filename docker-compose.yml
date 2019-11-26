@@ -1,0 +1,9 @@
+version: "3"
+services:
+  PostgresDB:
+    ports:
+      - "5432:5432"
+    build: ./seed.Dockerfile
+    environment:
+      - POSTGRES_PASSWORD=MySeCrEtPaSsWoRd
+      - POSTGRES_USER=bba
