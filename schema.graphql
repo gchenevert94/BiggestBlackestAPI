@@ -1,0 +1,44 @@
+schema {
+    query: Query,
+    mutation: Mutation
+}
+
+enum CardColor {
+    BLACK
+    WHITE
+}
+
+type Card {
+    id: ID,
+    formatText: String,
+    color: CardColor,
+}
+
+input Pagination {
+    pageSize: Int!,
+    cursor: ID
+}
+
+type Set {
+    id: ID,
+    name: String,
+    cards(
+        search: String,
+        color: CardColor,
+        pagination: Pagination = { pageSize: 10 }
+    ): [Card!] @juniper(ownership: "owned")
+}
+
+type Query {
+    cards(
+        search: String,
+        color: CardColor,
+        pagination: Pagination = { pageSize: 10 }
+    ): [Card!] @juniper(ownership: "owned")
+    set(
+        search: String,
+        pagination: Pagination = { pageSize: 10 }
+    ): [Set!] @juniper(ownership: "owned")
+}
+
+type Mutation

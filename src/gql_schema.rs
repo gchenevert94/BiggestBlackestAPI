@@ -1,24 +1,12 @@
 use juniper::{RootNode, ID, FieldResult};
 use chrono::{NaiveDateTime};
-use dotenv::dotenv;
-use diesel::PgConnection;
+use diesel::pg::expression::dsl::any;
 use diesel::prelude::*;
-use std::env;
-use super::schema::bb::{ Card, ParentSet };
 use super::{Context};
-
-
-#[derive(Queryable)]
-pub struct CardModel {
-    pub id: i32,
-    pub is_black: bool,
-    pub format_text: String,
-    is_active: bool,
-    last_modified: NaiveDateTime
-}
+use crate::models::{Card, ParentSet};
 
 #[juniper::object]
-impl CardModel {
+impl Card {
     pub fn id(&self) -> ID {
         ID::from(self.id.to_string())
     }
@@ -32,18 +20,10 @@ impl CardModel {
     }
 }
 
-#[derive(Queryable)]
-pub struct CardSet {
-    pub id: i32,
-    pub name: String,
-    is_active: bool,
-    last_modified: NaiveDateTime
-}
-
 #[juniper::object(
     Context = Context
 )]
-impl CardSet {
+impl ParentSet {
     pub fn id(&self) -> ID {
         ID::from(self.id.to_string())
     }
@@ -60,23 +40,22 @@ impl CardSet {
             )
         )
     )]
-    pub fn white_cards(&self, limit: i32, context: &Context) -> FieldResult<Vec<CardModel>> {
-        use diesel::pg::expression::dsl::any;
-        use super::schema::bb::Card::dsl::*;
-        use super::schema::bb::ParentSetCard::dsl::*;
+    pub fn white_cards(&self, limit: i32, context: &Context) -> FieldResult<Vec<Card>> {
+        use super::schema::bb::card::dsl::*;
+        use super::schema::bb::parent_set_card::dsl::*;
 
         let conn = &context.db_con;
 
-        let card_ids = ParentSetCard
+        let card_ids = parent_set_card
             .filter(parentsetid.eq(self.id))
             .select(cardid);
 
-        match Card
+        match card
             .filter(id.eq(any(card_ids)))
             .filter(isblack.eq(false))
             .order_by(id)
             .limit(limit.into())
-            .load::<CardModel>(conn) {
+            .load::<Card>(conn) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e)?
             }
@@ -90,23 +69,23 @@ impl CardSet {
             )
         )
     )]
-    pub fn black_cards(&self, limit: i32, context: &Context) -> FieldResult<Vec<CardModel>> {
+    pub fn black_cards(&self, limit: i32, context: &Context) -> FieldResult<Vec<Card>> {
         use diesel::pg::expression::dsl::any;
-        use super::schema::bb::Card::dsl::*;
-        use super::schema::bb::ParentSetCard::dsl::*;
+        use super::schema::bb::card::dsl::*;
+        use super::schema::bb::parent_set_card::dsl::*;
 
         let conn = &context.db_con;
 
-        let card_ids = ParentSetCard
+        let card_ids = parent_set_card
             .filter(parentsetid.eq(self.id))
             .select(cardid);
 
-        match Card
+        match card
             .filter(id.eq(any(card_ids)))
             .filter(isblack.eq(true))
             .order_by(id)
             .limit(limit.into())
-            .load::<CardModel>(conn) {
+            .load::<Card>(conn) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e)?
             }
@@ -133,31 +112,31 @@ impl Query {
             )
         )
     )]
-    pub fn card_sets(title: Option<String>, context: &Context) -> FieldResult<Vec<CardSet>> {
-        use super::schema::bb::ParentSet::dsl::*;
+    pub fn card_sets(title: Option<String>, context: &Context) -> FieldResult<Vec<ParentSet>> {
+        use super::schema::bb::parent_set::dsl::*;
         let conn = &context.db_con;
 
         match title {
-            Some(t) => match ParentSet
+            Some(t) => match parent_set
                 .filter(name.ilike(t + "%"))
-                .load::<CardSet>(conn) {
+                .load::<ParentSet>(conn) {
                     Ok(v) => Ok(v),
                     Err(e) => Err(e)?
                 },
-            None => match ParentSet
-                .load::<CardSet>(conn) {
+            None => match parent_set
+                .load::<ParentSet>(conn) {
                     Ok(v) => Ok(v),
                     Err(e) => Err(e)?
                 },
         }
     }
 
-    pub fn card_set(id: ID, context: &Context) -> FieldResult<CardSet> {
-        use super::schema::bb::ParentSet::dsl::*;
+    pub fn card_set(id: ID, context: &Context) -> FieldResult<ParentSet> {
+        use super::schema::bb::parent_set::dsl::*;
         let conn = &context.db_con;
-        match ParentSet
+        match parent_set
             .find(id)
-            .first::<CardSet>(conn) {
+            .first::<ParentSet>(conn) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e)?
             }
@@ -171,13 +150,13 @@ impl Query {
             )
         )
     )]
-    pub fn black_cards(limit: i32, context: &Context) -> FieldResult<Vec<CardModel>> {
-        use super::schema::bb::Card::dsl::*;
+    pub fn black_cards(limit: i32, context: &Context) -> FieldResult<Vec<Card>> {
+        use super::schema::bb::card::dsl::*;
         let conn = &context.db_con;
-        match Card
+        match card
             .filter(isblack.eq(true))
             .limit(i64::from(limit))
-            .load::<CardModel>(conn) {
+            .load::<Card>(conn) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e)?
             }
@@ -191,14 +170,14 @@ impl Query {
             )
         )
     )]
-    pub fn white_cards(limit: i32, context: &Context) -> FieldResult<Vec<CardModel>> {
-        use super::schema::bb::Card::dsl::*;
+    pub fn white_cards(limit: i32, context: &Context) -> FieldResult<Vec<Card>> {
+        use super::schema::bb::card::dsl::*;
         let conn = &context.db_con;
-        match Card
+        match card
             .filter(isblack.eq(false))
             .order_by(id)
             .limit(i64::from(limit))
-            .load::<CardModel>(conn) {
+            .load::<Card>(conn) {
                 Ok(v) => Ok(v),
                 Err(e) => Err(e)?
             }

@@ -6,6 +6,8 @@ extern crate diesel;
 extern crate serde_derive;
 #[macro_use]
 extern crate juniper;
+#[macro_use]
+extern crate juniper_from_schema;
 
 use std::io;
 use std::sync::Arc;
@@ -19,8 +21,9 @@ use futures::Future;
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
 
-mod gql_schema;
 mod schema;
+mod models;
+mod gql_schema;
 
 use crate::gql_schema::{create_schema, Schema};
 

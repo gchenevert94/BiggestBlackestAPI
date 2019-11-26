@@ -1,6 +1,6 @@
 pub mod bb {
     table! {
-        bb.Card (id) {
+        bb.card (id) {
             id -> Int4,
             isblack -> Bool,
             formattext -> Text,
@@ -10,7 +10,7 @@ pub mod bb {
     }
 
     table! {
-        bb.DrawCard (id) {
+        bb.draw_card (id) {
             id -> Int4,
             cardid -> Int4,
             drawdate -> Timestamp,
@@ -21,7 +21,7 @@ pub mod bb {
     }
 
     table! {
-        bb.ParentSet (id) {
+        bb.parent_set (id) {
             id -> Int4,
             name -> Text,
             isactive -> Bool,
@@ -30,7 +30,7 @@ pub mod bb {
     }
 
     table! {
-        bb.ParentSetCard (parentsetid, cardid) {
+        bb.parent_set_card (parentsetid, cardid) {
             parentsetid -> Int4,
             cardid -> Int4,
             isactive -> Bool,
@@ -39,7 +39,7 @@ pub mod bb {
     }
 
     table! {
-        bb.User (id) {
+        bb.user (id) {
             id -> Int4,
             username -> Text,
             isactive -> Bool,
@@ -47,15 +47,15 @@ pub mod bb {
         }
     }
 
-    joinable!(DrawCard -> Card (cardid));
-    joinable!(ParentSetCard -> Card (cardid));
-    joinable!(ParentSetCard -> ParentSet (parentsetid));
+    joinable!(draw_card -> card (cardid));
+    joinable!(parent_set_card -> card (cardid));
+    joinable!(parent_set_card -> parent_set (parentsetid));
 
     allow_tables_to_appear_in_same_query!(
-        Card,
-        DrawCard,
-        ParentSet,
-        ParentSetCard,
-        User,
+        card,
+        draw_card,
+        parent_set,
+        parent_set_card,
+        user,
     );
 }
