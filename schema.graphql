@@ -1,17 +1,70 @@
-type Set {
-    Id: ID!
-    Name: String!
+schema {
+    query: Query,
+    mutation: Mutation
+}
+
+enum CardColor {
+    BLACK
+    WHITE
 }
 
 type Card {
-    Id: ID!
-    IsBlack: Boolean!
-    Set: Set!
-    Text: String!
+    id: ID! @juniper(ownership: "owned")
+    formatText: String!
+    color: CardColor! @juniper(ownership: "owned")
+    set: SetInfo!
+}
+
+input Pagination {
+    pageSize: Int!
+    cursor: ID
+    randomSeed: ID
+}
+
+type CardResult {
+    results: [Card!]!
+    lastCursor: ID @juniper(ownership: "owned")
+    hasNextPage: Boolean! @juniper(ownership: "owned")
+    randomSeed: ID @juniper(ownership: "owned")
+}
+
+type Set {
+    id: ID! @juniper(ownership: "owned")
+    name: String!
+    cards(
+        search: String,
+        color: CardColor,
+        pagination: Pagination = { pageSize: 10 }
+        randomized: Boolean
+    ): CardResult
+}
+
+type SetInfo {
+     id: ID! @juniper(ownership: "owned"),
+     name: String!
+}
+
+type SetResult {
+    results: [SetInfo!]!
+    lastCursor: ID @juniper(ownership: "owned")
+    hasNextPage: Boolean! @juniper(ownership: "owned")
 }
 
 type Query {
-    getSets: [Set!]!
-    getCardsBySetName(sets: [String]): [Card!]!
-    getCardsBySetId(sets: [ID]): [Card!]!
+    cards (
+        search: String,
+        color: CardColor,
+        pagination: Pagination = { pageSize: 10 },
+        sets: [ID!],
+        randomized: Boolean
+    ): CardResult! @juniper(ownership: "owned")
+    set(
+      id: ID!
+    ): Set! @juniper(ownership: "owned")
+    sets(
+        search: String,
+        pagination: Pagination = { pageSize: 10 }
+    ): SetResult! @juniper(ownership: "owned")
 }
+
+type Mutation
