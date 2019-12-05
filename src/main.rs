@@ -22,6 +22,7 @@ use diesel::{
 mod schema;
 mod models;
 mod gql;
+mod db;
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub type DbCon = PooledConnection<ConnectionManager<PgConnection>>;

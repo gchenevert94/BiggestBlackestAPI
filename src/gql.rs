@@ -1,4 +1,49 @@
-use crate::{models, Context, DbPool};
+/*
+    The purpose of our app to be containerized:
+        Everyone deserves to run their own instance and have fun
+        - Update with new OFFICIAL sources and expansions
+
+    When we host:
+        Use 100% the same utilities as the publicized container.
+        Collect cards, create decks, etc.
+        WE FULLY EXPECT TO STORE/KEEP OUR OWN SNAPSHOTS AND BACKUPS
+            pg_dump /mybackupfolder
+
+    Graphql schema {
+        license: "",
+        authors: "",
+        cardsAgainstHumanity: {
+            site,
+            license
+        }
+    }
+*/
+
+/**
+ * WE GONNA MAKE A BLANK DATABASE
+ * CREATE MIGRATIONS TABLE
+ * DOCKER SNAPSHOT
+ * 
+ * CREATE MIGRATION SCRIPT (init)
+ * DOCKER SNAPSHOT
+ * 
+ * CREATE MIGRATION SCRIPTS...
+ * DOCKER SNAPSHOT
+ * 
+ */
+
+/// THE SOLUTION
+/**
+ * mkdir /usr/migrations
+ * // NEW SET COMES
+ * cp new_sets.sql /usr/migrations/
+ * 
+ * CRONJOB
+ * 0 0 * * * "psql --credentials-- < /usr/migrations/ && rm /usr/migrations/"
+*/
+
+
+use crate::{models, db, Context, DbPool};
 use actix_web::{web, Error, HttpResponse};
 use base64::{decode, encode};
 use diesel::pg::Pg;
@@ -9,8 +54,9 @@ use juniper::http::playground::playground_source;
 use juniper::{http::GraphQLRequest, Executor, FieldResult, ID};
 use juniper_from_schema::graphql_schema_from_file;
 use std::collections::HashSet;
-use std::sync::Arc;
 use std::panic;
+use std::sync::Arc;
+use std::convert::TryInto;
 
 impl juniper::Context for Context {}
 
@@ -52,11 +98,12 @@ impl ToJuniperID for i32 {
     }
 }
 
-#[derive(Debug)]
 pub struct Card {
     id: i32,
     format_text: String,
     color: CardColor,
+    average_rating: f32,
+    total_votes: u32,
     set: SetInfo,
 }
 
@@ -80,9 +127,53 @@ impl CardFields for Card {
     ) -> FieldResult<&SetInfo> {
         Ok(&self.set)
     }
+
+    fn field_total_votes(&self, _: &Executor<'_, Context>) ->
+        FieldResult<i32>
+    {
+        Ok(self.total_votes.try_into().unwrap_or(0))
+    }
+
+    fn field_average_rating(&self, _: &Executor<'_, Context>) ->
+        FieldResult<f64>
+    {
+        Ok(self.average_rating.into())
+    }
 }
 
-#[derive(Debug)]
+pub struct CardOperation {
+    id: i32,
+    format_text: String,
+    color: CardColor,
+    total_votes: u32,
+    average_rating: f32
+}
+impl CardOperationFields for CardOperation {
+    fn field_id(&self, _: &Executor<'_, Context>) -> FieldResult<ID> {
+        Ok(ID::from(self.id.to_string()))
+    }
+
+    fn field_format_text(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.format_text)
+    }
+
+    fn field_color(&self, _: &Executor<'_, Context>) -> FieldResult<CardColor> {
+        Ok(self.color)
+    }
+
+    fn field_total_votes(&self, _: &Executor<'_, Context>) ->
+        FieldResult<i32>
+    {
+        Ok(self.total_votes.try_into().unwrap_or(0))
+    }
+
+    fn field_average_rating(&self, _: &Executor<'_, Context>) ->
+        FieldResult<f64>
+    {
+        Ok(self.average_rating.into())
+    }
+}
+
 pub struct CardResult {
     results: Vec<Card>,
     last_cursor: Option<i32>,
@@ -112,7 +203,6 @@ impl CardResultFields for CardResult {
     }
 }
 
-#[derive(Debug)]
 pub struct Set {
     id: i32,
     name: String,
@@ -141,7 +231,6 @@ impl SetFields for Set {
     }
 }
 
-#[derive(Debug)]
 pub struct SetInfo {
     id: i32,
     name: String,
@@ -157,7 +246,6 @@ impl SetInfoFields for SetInfo {
     }
 }
 
-#[derive(Debug)]
 pub struct SetResult {
     results: Vec<SetInfo>,
     last_cursor: Option<i32>,
@@ -203,26 +291,20 @@ impl QueryFields for Query {
 
         let mut db_cards = card.order_by(cid).inner_join(parent_set_card).into_boxed();
 
-        match set_ids {
-            Some(v) => {
-                db_cards = db_cards.filter(
-                    parentsetid.eq(any(v
-                        .iter()
-                        .map(|i| i.parse::<i32>().unwrap())
-                        .collect::<Vec<_>>())),
-                );
-            }
-            _ => {}
+        if let Some(v) = set_ids {
+            db_cards = db_cards.filter(
+                parentsetid.eq(any(v
+                    .iter()
+                    .map(|i| i.parse::<i32>().unwrap())
+                    .collect::<Vec<_>>())),
+            );
         }
 
-        match pagination.cursor {
-            Some(v) => {
-                let decoded_v = decode(&v.to_string()).unwrap();
-                let v = decoded_v.iter().fold(0, |acc, &x| (acc << 8) + x as i32);
-                db_cards = db_cards.filter(cid.gt(v));
-            }
-            _ => {}
-        };
+        if let Some(v) = pagination.cursor {
+            let decoded_v = decode(&v.to_string()).unwrap();
+            let v = decoded_v.iter().fold(0, |acc, &x| (acc << 8) + x as i32);
+            db_cards = db_cards.filter(cid.gt(v));
+        }
 
         match color {
             Some(CardColor::Black) => {
@@ -234,11 +316,8 @@ impl QueryFields for Query {
             _ => {}
         }
 
-        match search {
-            Some(r) => {
-                db_cards = db_cards.filter(text_searchable_format_text.matches(plainto_tsquery(r)));
-            }
-            _ => {}
+        if let Some(r) = search {
+            db_cards = db_cards.filter(text_searchable_format_text.matches(plainto_tsquery(r)));
         }
 
         let limit: i64 = pagination.page_size.into();
@@ -269,11 +348,7 @@ impl QueryFields for Query {
 
         trail.results().walk();
         if let Some(_) = trail.results().set().walk() {
-            let mut set_names: HashSet<i32> = HashSet::new();
-
-            for c in db_cards.iter() {
-                set_names.insert(c.set.id);
-            }
+            let set_names: HashSet<i32> = db_cards.iter().map(|c| c.set.id).collect();
 
             let names = parent_set::table
                 .select((psid, name))
@@ -340,20 +415,14 @@ impl QueryFields for Query {
             cards = cards.order_by(cardid).filter(parentsetid.eq(set.id));
 
             let mut limit: i64 = 10;
-            if let Some(a) = panic::catch_unwind(|| {
-                Some(trail.cards_args())
-            }).unwrap_or(None) {
-                let search = panic::catch_unwind(|| {
-                    a.search()
-                }).unwrap_or(None);
+            if let Some(a) = panic::catch_unwind(|| Some(trail.cards_args())).unwrap_or(None) {
+                let search = panic::catch_unwind(|| a.search()).unwrap_or(None);
 
                 if let Some(v) = search {
                     cards = cards.filter(text_searchable_format_text.matches(plainto_tsquery(v)));
                 }
 
-                let pagination = panic::catch_unwind(|| {
-                    Some(a.pagination())
-                }).unwrap_or(None);
+                let pagination = panic::catch_unwind(|| Some(a.pagination())).unwrap_or(None);
 
                 if let Some(v) = pagination {
                     if let Some(c) = v.cursor {
@@ -364,9 +433,7 @@ impl QueryFields for Query {
                     cards = cards.limit(1 + limit);
                 }
 
-                let color = panic::catch_unwind(||{
-                    a.color()
-                }).unwrap_or(None);
+                let color = panic::catch_unwind(|| a.color()).unwrap_or(None);
 
                 match color {
                     Some(CardColor::Black) => {
@@ -458,6 +525,28 @@ impl QueryFields for Query {
 }
 
 pub struct Mutation {}
+
+impl MutationFields for Mutation {
+    fn field_add_card(
+        &self,
+        executor: &Executor<'_, Context>,
+        _: &QueryTrail<'_, CardOperation, Walked>,
+        card: CreateCard,) ->
+        FieldResult<CardOperation>
+    {
+        unimplemented!()
+    }
+
+    fn field_rate_card(
+        &self,
+        executor: &Executor<'_, Context>,
+        _: &QueryTrail<'_, CardOperation, Walked>,
+        rating: CardRating, ) ->
+        FieldResult<CardOperation>
+    {
+        unimplemented!()
+    }
+}
 
 fn playground() -> HttpResponse {
     let html = playground_source("");

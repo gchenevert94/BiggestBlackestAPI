@@ -7,9 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix = "0.8"
 actix-web = "1.0"
 base64 = "0.11"
 chrono = "0.4"
+tokio-postgres = "0.5.0-alpha.2"
 diesel = { version = "1.0.0", default_features = false, features = ["chrono", "r2d2", "postgres"] }
 diesel_full_text_search = "1.0"
 dotenv = "0.9.0"

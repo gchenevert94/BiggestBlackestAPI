@@ -1,8 +1,10 @@
-FROM rust:1.31 AS builder
+FROM rust:1.39 AS builder
 
 WORKDIR /usr/src/bba
 COPY . .
 
+RUN rustup default nightly
+RUN rustup update
 RUN cargo install --path .
 
 CMD ["cargo build --release"]

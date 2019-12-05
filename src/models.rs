@@ -8,6 +8,14 @@ pub struct Card {
 }
 
 #[derive(Clone, Queryable)]
+pub struct CardFromSet {
+    pub id: i32,
+    pub is_black: bool,
+    pub format_text: String,
+    pub set_id: i32
+}
+
+#[derive(Clone, Queryable)]
 pub struct ParentSet {
     pub id: i32,
     pub name: String,
