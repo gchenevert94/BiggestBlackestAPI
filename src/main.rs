@@ -4,16 +4,13 @@
 extern crate diesel;
 extern crate diesel_full_text_search;
 extern crate base64;
-#[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate juniper;
-#[macro_use]
 extern crate juniper_from_schema;
 
 use std::io;
 
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use diesel::{
     r2d2::{Pool, ConnectionManager, PooledConnection},
     PgConnection
@@ -31,7 +28,8 @@ pub struct Context {
     db_con: DbCon
 }
 
-fn main() -> io::Result<()> {
+#[actix_rt::main]
+async fn main() -> io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
 
     dotenv::dotenv().ok();
@@ -46,10 +44,11 @@ fn main() -> io::Result<()> {
             .data(db_pool.clone())
             .configure(gql::register)
             .wrap(middleware::Logger::default())
-            .default_service(web::to(|| "404"))
+            .default_service(web::route().to(|| HttpResponse::NotFound()))
     })
     .bind("127.0.0.1:8080")?
-    .run()
+    .start()
+    .await
 }
 
 fn create_db_pool() -> DbPool {

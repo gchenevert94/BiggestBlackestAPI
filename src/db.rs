@@ -1,25 +1,44 @@
-use actix::{fut::wrap_future, prelude::*};
-use tokio_postgres::{connect, Client, Connection, Statement, NoTls, types::Type};
-use std::sync::Arc;
+use tokio_postgres::{types::Type, Client, Statement};
+use crate::models::{GetCards};
 
-pub struct PgConnection {
-  pg_client: Option<Client>,
-  con: Option<Arc<Connection<tokio_postgres::Socket, tokio_postgres::tls::NoTlsStream>>>,
+struct DbContext {
+    client: Option<Client>,
+    get_cards: Option<Statement>,
+    get_sets: Option<Statement>
 }
 
-impl Actor for PgConnection {
-  type Context = Context<Self>;
-}
+impl DbContext {
+    pub async fn new(client: Client) -> Result<DbContext, tokio_postgres::Error> {
+        let get_cards = client
+            .prepare_typed(
+                "SELECT id, format_text, is_black, parent_set_id, total_votes, average_rating FROM bb.get_cards($1, $2, $3, $4, $5, $6, $7)",
+                &[
+                    Type::TEXT,
+                    Type::BOOL,
+                    Type::INT4,
+                    Type::INT4,
+                    Type::INT4_ARRAY,
+                    Type::BOOL,
+                    Type::FLOAT4,
+                ],
+            )
+            .await?;
 
-impl PgConnection {
-  pub async fn connect(db_url: &str) -> Result<Addr<PgConnection>, tokio_postgres::Error> {
-    let (client, con) = connect(db_url, NoTls).await?;
+        let get_sets = client
+            .prepare_typed(
+                "SELECT * FROM bb.get_sets($1, $2, $3)",
+                &[Type::TEXT, Type::INT4, Type::INT4],
+            )
+            .await?;
 
-    Ok(PgConnection::create(move |ctx| {
-      PgConnection {
-        pg_client: Some(client),
-        con: Some(Arc::new(con))
-      }
-    }))
-  }
+        Ok(DbContext {
+            client: Some(client),
+            get_cards: Some(get_cards),
+            get_sets: Some(get_sets)
+        })
+    }
+
+    pub async fn get_cards(self) -> Vec<GetCards> {
+        unimplemented!()
+    }
 }

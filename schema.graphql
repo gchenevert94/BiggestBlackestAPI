@@ -18,14 +18,14 @@ type CardOperation {
      formatText: String!
      color: CardColor! @juniper(ownership: "owned")
      totalVotes: Int! @juniper(ownership: "owned")
-     averageRating: Float! @juniper(ownership: "owned")
+     averageRating: Float @juniper(ownership: "owned")
 }
 
 type Card {
     id: ID! @juniper(ownership: "owned")
     formatText: String!
     color: CardColor! @juniper(ownership: "owned")
-    averageRating: Float! @juniper(ownership: "owned")
+    averageRating: Float @juniper(ownership: "owned")
     totalVotes: Int! @juniper(ownership: "owned")
     set: SetInfo!
 }

@@ -1,12 +1,16 @@
 pub mod bb {
     table! {
+        use diesel_full_text_search::TsVector;
+        use diesel::sql_types::{
+            Int4, Bool, Text, Timestamp, Nullable, Float4
+        };
         bb.card (id) {
             id -> Int4,
             is_black -> Bool,
             format_text -> Text,
             is_active -> Bool,
             last_modified -> Timestamp,
-            text_searchable_format_text -> Tsvector,
+            text_searchable_format_text -> TsVector,
             average_rating -> Nullable<Float4>,
             total_votes -> Int4,
         }
@@ -24,12 +28,16 @@ pub mod bb {
     }
 
     table! {
+        use diesel_full_text_search::TsVector;
+        use diesel::sql_types::{
+            Int4, Text, Bool, Timestamp
+        };
         bb.parent_set (id) {
             id -> Int4,
             name -> Text,
             is_active -> Bool,
             last_modified -> Timestamp,
-            text_searchable_name -> Tsvector,
+            text_searchable_name -> TsVector,
         }
     }
 
