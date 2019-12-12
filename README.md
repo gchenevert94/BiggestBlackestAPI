@@ -1,7 +1,7 @@
 # BIGGEST BLACKEST API
 
-<div style="display: flex;justify-content: space-around">
-  <img width="30%" alt="Cards Against Humanity" src="./images/cah-image.jpg">
+<div style="display: flex;width:100%;justify-content: space-between;">
+  <img height="300px" alt="Cards Against Humanity" src="./images/cah-image.jpg">
   <img width="30%" alt="GraphQL" src="./images/gql-image.svg">
   <img width="30%" alt="Actix" src="./images/actix-image.png">
 </div>
@@ -11,18 +11,18 @@
 **Cards Against Humanity has the following disclaimer to their content, which this project adheres to:**
 *You must also comply with the Laws of Man and Nature. Don’t use any form of this game for nefarious purposes like libel, slander, diarrhea, copyright infringement, harassment, or death. If you break the law and get in trouble for it, Cards Against Humanity is free of all liability.*
 
-Biggest Blackest API is a play on the *in*famous **Cards Against Humanity** card `The Biggest Blackest Dick`. **Cards Against Humanity** is licensed under the Creative Commons License, which loosely means that as long as you (the end user) don't attempt to make money off of it, you're free to modify, and use it in just about any way you want.
+Biggest Blackest API is a play on the *in*famous **Cards Against Humanity** card ***The Biggest Blackest Dick***. **Cards Against Humanity** is licensed under the Creative Commons License, which loosely means that as long as you (the end user) don't attempt to make money off of it, you're free to modify, and use it in just about any way you want.
 
 ## The Project
 This project was heavily inspired by the JSON Against Humanity project, and provides a similar (hopefully expanded** use set for projects. We use GraphQL to provide access to the following:
 * Cards  
-** Provides Search for cards  
-** Allows for paginated results  
-** Can shuffle cards, and reuse the same ordering in subsequent requests using a seed  
+  * Provides Search for cards  
+  * Allows for paginated results  
+  * Can shuffle cards, and reuse the same ordering in subsequent requests using a seed  
 * Sets  
-** Provides a search by set name  
-** Paginated results  
-** When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
+  * Provides a search by set name  
+  * Paginated results  
+  * When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
 
 This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
 
