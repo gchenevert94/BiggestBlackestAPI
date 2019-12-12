@@ -1,9 +1,9 @@
 # BIGGEST BLACKEST API
 
-<div style="display: flex;">
-  <img alt="Cards Against Humanity" src="./images/cah-image.jpg">
-  <img alt="GraphQL" src="./images/gql-image.svg">
-  <img alt="Actix" src="./images/actix-image.png">
+<div style="display: flex;justify-content: space-around">
+  <img style="width:30%;" alt="Cards Against Humanity" src="./images/cah-image.jpg">
+  <img style="width:30%;" alt="GraphQL" src="./images/gql-image.svg">
+  <img style="width:30%;" alt="Actix" src="./images/actix-image.png">
 </div>
 
 ***Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
@@ -24,7 +24,7 @@ This project was heavily inspired by the JSON Against Humanity project, and prov
 ** Paginated results  
 ** When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
 
-This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/**) provides a nice way to test out the API directly. The server is running on Actix-Web.
+This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
 
 ## The Goal
 This project is was a tool to learn more about the Rust ecosystem, learn more about Docker and containerization, and build something in GraphQL. In addition, we also hope to create a client application which utilizes this repository as its backbone.
