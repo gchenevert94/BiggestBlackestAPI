@@ -1,22 +1,14 @@
-use chrono::{NaiveDateTime};
-
-#[derive(Clone, Queryable)]
-pub struct Card {
-    pub id: i32,
-    pub is_black: bool,
-    pub format_text: String,
+pub struct GetSetResults {
+  pub id: i32,
+  pub name: String,
 }
 
-#[derive(Clone, Queryable)]
-pub struct ParentSet {
-    pub id: i32,
-    pub name: String,
-}
-
-#[derive(Queryable)]
-pub struct ParentSetCard {
-    parentsetid: i32,
-    card_id: i32,
-    is_active: bool,
-    last_modified: NaiveDateTime
+pub struct GetCardResults {
+  pub id: i32,
+  pub format_text: String,
+  pub is_black: bool,
+  pub parent_set_id: i32,
+  pub parent_set_name: String,
+  pub total_votes: i32,
+  pub average_rating: Option<f32>,
 }

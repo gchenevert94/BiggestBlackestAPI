@@ -1,5 +1,7 @@
+scalar Url
+
 schema {
-    query: Query,
+    query: Query
     mutation: Mutation
 }
 
@@ -8,10 +10,27 @@ enum CardColor {
     WHITE
 }
 
+input CardRating {
+     id: ID!
+     rating: Float!
+}
+
+type CardOperation {
+     id: ID! @juniper(ownership: "owned")
+     formatText: String!
+     color: CardColor! @juniper(ownership: "owned")
+     totalVotes: Int! @juniper(ownership: "owned")
+     averageRating: Float @juniper(ownership: "owned")
+}
+
 type Card {
     id: ID! @juniper(ownership: "owned")
+
     formatText: String!
+
     color: CardColor! @juniper(ownership: "owned")
+    averageRating: Float @juniper(ownership: "owned")
+    totalVotes: Int! @juniper(ownership: "owned")
     set: SetInfo!
 }
 
@@ -32,15 +51,15 @@ type Set {
     id: ID! @juniper(ownership: "owned")
     name: String!
     cards(
-        search: String,
-        color: CardColor,
+        search: String
+        color: CardColor
         pagination: Pagination = { pageSize: 10 }
         randomized: Boolean
-    ): CardResult
+    ): CardResult @juniper(ownership: "owned")
 }
 
 type SetInfo {
-     id: ID! @juniper(ownership: "owned"),
+     id: ID! @juniper(ownership: "owned")
      name: String!
 }
 
@@ -50,21 +69,45 @@ type SetResult {
     hasNextPage: Boolean! @juniper(ownership: "owned")
 }
 
+type CardsAgainstHumanity {
+     url: Url! @juniper(ownership: "owned")
+     license: Url! @juniper(ownership: "owned")
+}
+
 type Query {
     cards (
-        search: String,
-        color: CardColor,
-        pagination: Pagination = { pageSize: 10 },
-        sets: [ID!],
+        search: String
+        color: CardColor
+        pagination: Pagination = { pageSize: 10 }
+        sets: [ID!]
         randomized: Boolean
     ): CardResult! @juniper(ownership: "owned")
+
     set(
       id: ID!
     ): Set! @juniper(ownership: "owned")
+
     sets(
-        search: String,
+        search: String
         pagination: Pagination = { pageSize: 10 }
     ): SetResult! @juniper(ownership: "owned")
+
+    license: Url! @juniper(ownership: "owned")
+    apiVersion: String! @juniper(ownership: "owned")
+    authors: [String!]! @juniper(ownership: "owned")
+    cardsAgainstHumanity: CardsAgainstHumanity! @juniper(ownership: "owned")
 }
 
-type Mutation
+input CreateCard {
+    formatText: String!
+    color: CardColor!
+}
+
+type Mutation {
+     addCard(
+         card: CreateCard!
+     ): CardOperation! @juniper(ownership: "owned") 
+     rateCard(
+         rating: CardRating!
+     ): CardOperation! @juniper(ownership: "owned")
+}
