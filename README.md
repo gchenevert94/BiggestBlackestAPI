@@ -1,8 +1,9 @@
 # BIGGEST BLACKEST API
 
-[![Cards Against Humanity][cah-image]][![GraphQL][graphql-image]] [![Actix][actix-image]]
+![[Cards Against Humanity][cah-image]] ![[GraphQL][graphql-image]] ![[Actix][actix-image]]
 
-* **Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
+***Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
+
 **Cards Against Humanity has the following disclaimer to their content, which this project adheres to:**
 *You must also comply with the Laws of Man and Nature. Don’t use any form of this game for nefarious purposes like libel, slander, diarrhea, copyright infringement, harassment, or death. If you break the law and get in trouble for it, Cards Against Humanity is free of all liability.*
 
@@ -10,19 +11,22 @@ Biggest Blackest API is a play on the *in*famous **Cards Against Humanity** card
 
 ## The Project
 This project was heavily inspired by the JSON Against Humanity project, and provides a similar (hopefully expanded** use set for projects. We use GraphQL to provide access to the following:
-* Cards
-** Provides Search for cards
-** Allows for paginated results
-** Can shuffle cards, and reuse the same ordering in subsequent requests using a seed
-* Sets
-** Provides a search by set name
-** Paginated results
-** When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.
+* Cards  
+** Provides Search for cards  
+** Allows for paginated results  
+** Can shuffle cards, and reuse the same ordering in subsequent requests using a seed  
+* Sets  
+** Provides a search by set name  
+** Paginated results  
+** When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
+
 This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/**) provides a nice way to test out the API directly. The server is running on Actix-Web.
 
 ## The Goal
 This project is was a tool to learn more about the Rust ecosystem, learn more about Docker and containerization, and build something in GraphQL. In addition, we also hope to create a client application which utilizes this repository as its backbone.
+
 **Updates** are planned to be pushed in a non-obstructive manner. The project relies on a PostgreSQL container to run and hold the cards. When new sets are published and updated, the change script will be placed in a `/migrations/` folder within the image. CRON Jobs will be set up in the image to run and manage the scripts placed here. Feel free to modify and use the folder as well. This will hopefully prevent/reduce data loss on production images running (potentially having collected additional data.
+
 **Other Updates**: We intend for the project to allow users to submit cards for reviewing, and automate the creation of new *Time-Decks*. Decks for each day, week, month, and year can be generated from the highest-rated cards for a given time-period.
 
 ## The Game
@@ -109,6 +113,6 @@ mother. Live a little.
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/2.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/">Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Generic License</a>.
 
-[cah-image] ./cah-image.jpg
-[graphql-image] ./gql-image.svg
-[actix-image] ./actix-image.png
+[cah-image]: ./images/cah-image.jpg
+[graphql-image]: ./images/gql-image.svg
+[actix-image]: ./images/actix-image.png
