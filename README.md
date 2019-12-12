@@ -1,9 +1,9 @@
 # BIGGEST BLACKEST API
 
 <div style="display: flex;justify-content: space-around">
-  <img style="width:30%;" alt="Cards Against Humanity" src="./images/cah-image.jpg">
-  <img style="width:30%;" alt="GraphQL" src="./images/gql-image.svg">
-  <img style="width:30%;" alt="Actix" src="./images/actix-image.png">
+  <img style="width:40px;" alt="Cards Against Humanity" src="./images/cah-image.jpg">
+  <img style="width:40px;" alt="GraphQL" src="./images/gql-image.svg">
+  <img style="width:40px;" alt="Actix" src="./images/actix-image.png">
 </div>
 
 ***Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
