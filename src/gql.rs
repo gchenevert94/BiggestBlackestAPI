@@ -248,7 +248,7 @@ impl SetFields for Set {
         get_cards.filter_black = Some(true);
       }
       Some(CardColor::White) => {
-        get_cards.filter_black = Some(true);
+        get_cards.filter_black = Some(false);
       }
       _ => {}
     }
@@ -387,7 +387,7 @@ impl QueryFields for Query {
         get_cards.filter_black = Some(true);
       }
       Some(CardColor::White) => {
-        get_cards.filter_black = Some(true);
+        get_cards.filter_black = Some(false);
       }
       _ => {}
     }

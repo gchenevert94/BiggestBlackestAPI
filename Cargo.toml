@@ -7,26 +7,18 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7"
-url = "2.1"
 actix-rt = "1.0.0-alpha.3"
 actix-web = "2.0.0-alpha.3"
 base64 = "0.11"
-chrono = "0.4"
-# tokio-postgres = "0.5.0-alpha.2"
-# bb8-postgres = "0.4.0-pre"
 dotenv = "0.9.0"
 env_logger = "0.6"
-serde = "1.0"
-serde_json = "1.0"
-serde_derive = "1.0"
+fallible-iterator = "0.2"
 juniper = "0.14"
 juniper-from-schema = "0.5"
-r2d2_postgres = "0.15.0-rc.1"
 postgres = "0.16.0-rc.2"
-fallible-iterator = "0.2"
-# futures = "0.3"
-# tokio = { version = "0.2", features = ["macros"] }
-
-# [patch.crates-io]
-# bb8-postgres = { git = "https://github.com/khuey/bb8" }
+r2d2_postgres = "0.15.0-rc.1"
+rand = "0.7"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+url = "2.1"
