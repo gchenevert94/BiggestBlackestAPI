@@ -24,7 +24,7 @@ This project was heavily inspired by the JSON Against Humanity project, and prov
   * Paginated results  
   * When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
 
-This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
+This project was built using `juniper-from-schema`, which analyzes the [/schema.graphql file](./schema.graphql "Schema File"). Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
 
 ## The Goal
 This project is was a tool to learn more about the Rust ecosystem, learn more about Docker and containerization, and build something in GraphQL. In addition, we also hope to create a client application which utilizes this repository as its backbone.
