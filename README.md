@@ -1,6 +1,10 @@
 # BIGGEST BLACKEST API
 
-[![Cards Against Humanity][cah-image]] [![GraphQL][graphql-image]] [![Actix][actix-image]]
+<div style="display: flex;">
+  <img alt="Cards Against Humanity" src="./images/cah-image.jpg">
+  <img alt="GraphQL" src="./images/gql-image.svg">
+  <img alt="Actix" src="./images/actix-image.png">
+</div>
 
 ***Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
 
@@ -52,54 +56,54 @@ If you win, you keep the point. If you lose, whoever wins gets the
 point you wagered.
 ### House Rules
 Cards Against Humanity is meant to be remixed. Here are some of
-our favorite ways to pimp out the rules:
+our favorite ways to pimp out the rules:  
 **Rando Cardrissian**: Every round, pick one random white card from
 the pile and place it into play. This card belongs to an imaginary
 player named Rando Cardrissian, and if he wins the game, all
-players go home in a state of everlasting shame.
+players go home in a state of everlasting shame.  
 **Happy Ending**: When you’re ready to end the game, play the
 “Make a haiku” black card. This is the official ceremonial ending of
 a good game of Cards Against Humanity. Note: Haikus don’t need
-to follow the 5-7-5 form. They just have to be read dramatically.
+to follow the 5-7-5 form. They just have to be read dramatically.  
 **Never Have I Ever**: At any time, players may discard cards that
 they don’t understand, but they must confess their ignorance to the
-group and suffer the resulting humiliation.
+group and suffer the resulting humiliation.  
 **Wheaton’s Law**: Each round, the Card Czar draws two black
 cards, chooses the one they’d prefer to play, and puts the other at
-the bottom of the black card pile.
+the bottom of the black card pile.  
 **Rebooting the Universe**: At any time, players may trade in a point
 to return as many white cards as they’d like to the deck and draw
-back to ten.
+back to ten.  
 **Packing Heat**: For Pick 2s, all players draw an extra card before
-playing the hand to open up more options.
+playing the hand to open up more options.  
 **Meritocracy**: Instead of passing clockwise, the role of Card Czar
-passes to the winner of the previous round.
+passes to the winner of the previous round.  
 **Smooth Operator**: If a player slips a card from their hand into
 conversation without anyone noticing, they may trade it for one
 point. If the player is called out, they lose a point. If this rule is
-confusing, you’re taking this game too seriously.
+confusing, you’re taking this game too seriously.  
 **Tie Breaker**: If the Card Czar can’t decide between two white
 cards, they may declare a Tie Breaker. In the event of a Tie Breaker,
-the more conventionally attractive player wins.
+the more conventionally attractive player wins.  
 **Chubby Bunny**: Players crumple up their winning cards and keep
-them in their mouths as points.
+them in their mouths as points.  
 **Freaky Friday**: Players play Cards Against Humanity while wearing
-their mothers’ underpants.
+their mothers’ underpants.  
 **Hard Mode**: Play Cards Against Humanity while raising four kids,
 dealing with chronic back pain, and waiting tables at Chili’s. Bonus!
-For an added challenge, try being gay or black.
+For an added challenge, try being gay or black.  
 **Russian Roulette**: The Card Czar takes out a revolver. They place
 one bullet at random in the cylinder, spin it, and close it. They then
 hold the gun to their head and pull the trigger. If the Card Czar
 survives, they defiantly place the gun in the center of the table
 and eye the other players, challenging them to pick up the gun “if
-they’re man enough.” The Card Czar wins a point.
+they’re man enough.” The Card Czar wins a point.  
 **Hail to the Chief**: A player may earn a point at any time by
 announcing candidacy for and successfully being elected President
-of the United States of America.
+of the United States of America.  
 **Race to the Moon**: All players begin masturbating immediately.
-Then what happens?
-**Smoke Opium and Play Cards Against Humanity**: Great idea!
+Then what happens?  
+**Smoke Opium and Play Cards Against Humanity**: Great idea!  
 **Wait for Godot**: At the start of the game, instead of drawing a
 hand, players stare at the pile of white cards. After an indeterminate
 amount of time, players move their gaze to the pile of black cards.
@@ -107,12 +111,8 @@ The game doesn’t begin. How can it begin? It has already ended.
 In the gloom, players shift their cloudy gaze from pile to pile. Is it
 a trick of the light, or do the black cards and white cards seem to
 converge in an indistinguishable grayness? Mote by mote, dust
-settles on the cards. Nobody accumulates points. Nobody wins.
+settles on the cards. Nobody accumulates points. Nobody wins.  
 **Don’t play Cards Against Humanity**: Walk to a park. Call your
 mother. Live a little.
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/2.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/2.0/">Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Generic License</a>.
-
-[cah-image]: ./images/cah-image.jpg
-[graphql-image]: ./images/gql-image.svg
-[actix-image]: ./images/actix-image.png
