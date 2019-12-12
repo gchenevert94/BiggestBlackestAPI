@@ -33,6 +33,7 @@ async fn main() -> io::Result<()> {
       .data(pool.clone())
       .configure(gql::register)
       .wrap(middleware::Logger::default())
+      .wrap(middleware::Compress::default())
       .default_service(web::route().to(|| HttpResponse::NotFound()))
   })
   .bind("127.0.0.1:8080")?
