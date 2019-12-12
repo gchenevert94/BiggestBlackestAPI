@@ -1,6 +1,6 @@
 # BIGGEST BLACKEST API
 
-![[Cards Against Humanity][cah-image]] ![[GraphQL][graphql-image]] ![[Actix][actix-image]]
+[![Cards Against Humanity][cah-image]] [![GraphQL][graphql-image]] [![Actix][actix-image]]
 
 ***Disclaimer**: Given the nature of Cards Against Humanity, this repository, its contents, and any usage of it is age restricted to ***Mature Audiences***. The contributors of this project do not share the opinions of the text written in Game, nor on its content*
 
