@@ -41,18 +41,18 @@
  * CRONJOB
  * 0 0 * * * "psql --credentials-- < /usr/migrations/ && rm /usr/migrations/"
 */
-use crate::{db, models, Context, DbPool};
+use crate::{
+  db::{self, GetCards, GetSets, Pool},
+  Context,
+};
 use actix_web::{web, Error, HttpResponse};
 use base64::{decode, encode};
-use diesel::pg::Pg;
-use diesel::prelude::*;
-use diesel_full_text_search::{plainto_tsquery, TsVectorExtensions};
 use juniper::http::playground::playground_source;
-use juniper::{http::GraphQLRequest, Executor, FieldResult, ID};
+use juniper::{graphql_value, http::GraphQLRequest, Executor, FieldResult, ID};
 use juniper_from_schema::graphql_schema_from_file;
-use std::collections::HashSet;
 use std::panic;
 use std::sync::Arc;
+use url::Url;
 
 impl juniper::Context for Context {}
 
@@ -108,10 +108,16 @@ impl CardFields for Card {
     Ok(ID::from(self.id.to_string()))
   }
 
+  /// Format text includes basic HTML markdown for
+  /// text-decorations. Cards are formatted with a
+  /// `<prompt/>` tag in place of '_', or the like
+  /// to reduce confusion
   fn field_format_text(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
     Ok(&self.format_text)
   }
 
+  /// Cards should be partitioned by clients for greater
+  /// flexibility
   fn field_color(&self, _: &Executor<'_, Context>) -> FieldResult<CardColor> {
     Ok(self.color)
   }
@@ -194,7 +200,6 @@ impl CardResultFields for CardResult {
 pub struct Set {
   id: i32,
   name: String,
-  cards: Option<CardResult>,
 }
 
 impl SetFields for Set {
@@ -206,16 +211,94 @@ impl SetFields for Set {
     Ok(&self.name)
   }
 
+  /// Most useful method. Can be used for "actual" gameplay. To *shuffle* the cards,
+  /// pass `randomized: true`, and use the resulting `randomSeed` to keep the
+  /// same card shuffle in subsequent results.
+  ///
+  /// Search field is a full-text-search implementation
   fn field_cards(
     &self,
-    _: &Executor<'_, Context>,
+    executor: &Executor<'_, Context>,
     _: &QueryTrail<'_, CardResult, Walked>,
-    _: Option<String>,
-    _: Option<CardColor>,
-    _: Pagination,
-    _: Option<bool>,
-  ) -> FieldResult<&Option<CardResult>> {
-    Ok(&self.cards)
+    search: Option<String>,
+    card_color: Option<CardColor>,
+    pagination: Pagination,
+    randomized: Option<bool>,
+  ) -> FieldResult<Option<CardResult>> {
+    if pagination.page_size > 1000 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Page Size must be <= 1000 cards per query",
+        graphql_value!({"validation error": "Page_Size must be <= 1000 cards per query"}),
+      ));
+    } else if pagination.page_size < 0 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Page Size cannot be negative",
+        graphql_value!({"validation error": "Page_Size cannot be negative"}),
+      ));
+    }
+
+    let mut get_cards = GetCards::default();
+    get_cards.n_cards = Some(pagination.page_size + 1);
+    get_cards.search = search;
+    get_cards.card_sets = Some(vec![self.id]);
+    get_cards.previous_cursor = pagination.cursor.map(|v| i32::from_id(v));
+
+    match card_color {
+      Some(CardColor::Black) => {
+        get_cards.filter_black = Some(true);
+      }
+      Some(CardColor::White) => {
+        get_cards.filter_black = Some(true);
+      }
+      _ => {}
+    }
+
+    if let Some(r) = randomized {
+      get_cards.get_random = Some(r);
+
+      if let Some(s) = pagination.random_seed {
+        get_cards.random_seed = Some(f32::from_id(s));
+      } else {
+        get_cards.random_seed = Some(rand::random::<f32>());
+      }
+    }
+
+    let db_cards = db::get_cards(&executor.context().db, &get_cards)?;
+
+    let has_more = db_cards.iter().len() as i32 > pagination.page_size;
+    let last_cursor = match get_cards.get_random {
+      Some(true) => Some(get_cards.previous_cursor.unwrap_or(0) + pagination.page_size),
+      _ => db_cards
+        .iter()
+        .nth(pagination.page_size as usize - 1)
+        .map(|r| r.id),
+    };
+
+    let db_cards = db_cards
+      .iter()
+      .take(pagination.page_size as usize)
+      .map(|c| Card {
+        id: c.id,
+        color: match c.is_black {
+          true => CardColor::Black,
+          false => CardColor::White,
+        },
+        format_text: c.format_text.to_owned(),
+        set: SetInfo {
+          id: c.parent_set_id,
+          name: c.parent_set_name.to_owned(),
+        },
+        total_votes: c.total_votes,
+        average_rating: c.average_rating,
+      })
+      .collect::<Vec<_>>();
+
+    Ok(Some(CardResult {
+      results: db_cards,
+      has_next_page: has_more,
+      last_cursor: last_cursor,
+      random_seed: get_cards.random_seed,
+    }))
   }
 }
 
@@ -258,229 +341,125 @@ impl SetResultFields for SetResult {
   }
 }
 
+/// Biggest Blackest API Schema documentation
+/// Primary (only) access to cards in the database
 pub struct Query {}
 
 impl QueryFields for Query {
   fn field_cards(
     &self,
     executor: &Executor<'_, Context>,
-    trail: &QueryTrail<'_, CardResult, Walked>,
+    _: &QueryTrail<'_, CardResult, Walked>,
     search: Option<String>,
     color: Option<CardColor>,
     pagination: Pagination,
     set_ids: Option<Vec<juniper::ID>>,
-    _: Option<bool>,
+    randomized: Option<bool>,
   ) -> FieldResult<CardResult> {
-    use super::schema::bb::card::dsl::{id as cid, *};
-    use super::schema::bb::parent_set;
-    use super::schema::bb::parent_set::{id as psid, *};
-    use super::schema::bb::parent_set_card::dsl::*;
-    use diesel::pg::expression::dsl::*;
+    // Error handling
+    let limit = pagination.page_size;
 
-    let mut db_cards = card.order_by(cid).inner_join(parent_set_card).into_boxed();
+    if limit > 1000 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Limit must be <= 1000 cards per query",
+        graphql_value!({"validation error": "Limit must be <= 1000 cards per query"}),
+      ));
+    } else if limit < 0 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Limit cannot be negative",
+        graphql_value!({"validation error": "Limit cannot be negative"}),
+      ));
+    }
+
+    let mut get_cards = GetCards::default();
+
+    get_cards.n_cards = Some(limit + 1);
 
     if let Some(v) = set_ids {
-      db_cards = db_cards.filter(
-        parent_set_id.eq(any(
-          v.iter()
-            .map(|i| i.parse::<i32>().unwrap())
-            .collect::<Vec<_>>(),
-        )),
-      );
+      get_cards.card_sets = Some(v.iter().map(|i| i.parse().unwrap()).collect());
     }
 
-    if let Some(v) = pagination.cursor {
-      let decoded_v = decode(&v.to_string()).unwrap();
-      let v = decoded_v.iter().fold(0, |acc, &x| (acc << 8) + x as i32);
-      db_cards = db_cards.filter(cid.gt(v));
-    }
+    get_cards.previous_cursor = pagination.cursor.map(|v| i32::from_id(v));
+    get_cards.search = search;
 
     match color {
       Some(CardColor::Black) => {
-        db_cards = db_cards.filter(is_black.eq(true));
+        get_cards.filter_black = Some(true);
       }
       Some(CardColor::White) => {
-        db_cards = db_cards.filter(is_black.eq(false));
+        get_cards.filter_black = Some(true);
       }
       _ => {}
     }
 
-    if let Some(r) = search {
-      db_cards = db_cards.filter(text_searchable_format_text.matches(plainto_tsquery(r)));
+    if let Some(r) = randomized {
+      get_cards.get_random = Some(r);
+
+      if let Some(s) = pagination.random_seed {
+        get_cards.random_seed = Some(f32::from_id(s));
+      } else {
+        get_cards.random_seed = Some(rand::random::<f32>());
+      }
     }
 
-    let limit: i64 = pagination.page_size.into();
+    let con = &executor.context().db;
+    let db_cards = db::get_cards(con, &get_cards)?;
+
+    let has_more = db_cards.iter().len() as i32 > limit;
+    let last_cursor = match get_cards.get_random {
+      Some(true) => Some(get_cards.previous_cursor.unwrap_or(0) + limit),
+      _ => db_cards.iter().nth(limit as usize - 1).map(|r| r.id),
+    };
+
     let db_cards = db_cards
-      .limit(limit + 1)
-      .select((
-        cid,
-        is_black,
-        format_text,
-        parent_set_id,
-        total_votes,
-        average_rating,
-      ))
-      .load::<(i32, bool, String, i32, i32, Option<f32>)>(&executor.context().db_con)?;
-
-    let has_more = db_cards.len() as i64 > limit;
-    let last_id = db_cards.iter().nth(limit as usize - 1).map(|v| v.0);
-
-    let mut db_cards = db_cards
       .iter()
       .take(limit as usize)
       .map(|c| Card {
-        id: c.0,
-        color: match c.1 {
+        id: c.id,
+        color: match c.is_black {
           true => CardColor::Black,
           false => CardColor::White,
         },
-        format_text: c.2.to_owned(),
+        format_text: c.format_text.to_owned(),
         set: SetInfo {
-          id: c.3,
-          name: String::new(),
+          id: c.parent_set_id,
+          name: c.parent_set_name.to_owned(),
         },
-        total_votes: c.4,
-        average_rating: c.5,
+        total_votes: c.total_votes,
+        average_rating: c.average_rating,
       })
       .collect::<Vec<_>>();
-
-    trail.results().walk();
-    if let Some(_) = trail.results().set().walk() {
-      let set_names: HashSet<i32> = db_cards.iter().map(|c| c.set.id).collect();
-
-      let names = parent_set::table
-        .select((psid, name))
-        .filter(psid.eq(any(set_names.iter().collect::<Vec<_>>())))
-        .load::<(i32, String)>(&executor.context().db_con)?;
-
-      db_cards = db_cards
-        .iter()
-        .map(|c| {
-          let setname = names
-            .iter()
-            .find(|(i, _)| i == &c.set.id)
-            .map(|(_, v)| v.clone())
-            .unwrap_or(String::new());
-          Card {
-            id: c.id,
-            color: c.color,
-            format_text: c.format_text.to_owned(),
-            set: SetInfo {
-              id: c.set.id,
-              name: setname,
-            },
-            total_votes: c.total_votes,
-            average_rating: c.average_rating,
-          }
-        })
-        .collect::<Vec<_>>();
-    }
 
     Ok(CardResult {
       results: db_cards,
       has_next_page: has_more,
-      last_cursor: last_id,
-      random_seed: None,
+      last_cursor: last_cursor,
+      random_seed: get_cards.random_seed,
     })
   }
 
+  /// To get cards belonging to a specific set
+  /// The return types on this are different than the subsequent
+  /// `sets` field to reduce nested query results, and nested pagination
+  ///
+  /// This allows finer control of where the cards are coming from,
+  /// as well as allowing cards to be queried in a *shuffled* order
   fn field_set(
     &self,
     executor: &Executor<'_, Context>,
-    trail: &QueryTrail<'_, Set, Walked>,
-    id_f: ID,
+    _: &QueryTrail<'_, Set, Walked>,
+    id: ID,
   ) -> FieldResult<Set> {
-    use crate::schema::bb::card::dsl::{id as cid, *};
-    use crate::schema::bb::parent_set::dsl::{id as psid, *};
-    use crate::schema::bb::parent_set_card;
-    use crate::schema::bb::parent_set_card::*;
-
-    let set = parent_set
-      .select((psid, name))
-      .find(id_f.parse::<i32>().unwrap())
-      .first::<models::ParentSet>(&executor.context().db_con)?;
-
-    let mut set = Set {
+    let set = db::get_set_by_id(&executor.context().db, id.parse().unwrap())?;
+    Ok(Set {
       id: set.id,
       name: set.name,
-      cards: None,
-    };
-
-    if let Some(_) = trail.cards().walk() {
-      let mut cards = card
-        .inner_join(parent_set_card::table)
-        .filter(parent_set_id.eq(set.id))
-        .into_boxed::<Pg>();
-
-      cards = cards.order_by(card_id).filter(parent_set_id.eq(set.id));
-
-      let mut limit: i64 = 10;
-      if let Some(a) = panic::catch_unwind(|| Some(trail.cards_args())).unwrap_or(None) {
-        let search = panic::catch_unwind(|| a.search()).unwrap_or(None);
-
-        if let Some(v) = search {
-          cards = cards.filter(text_searchable_format_text.matches(plainto_tsquery(v)));
-        }
-
-        let pagination = panic::catch_unwind(|| Some(a.pagination())).unwrap_or(None);
-
-        if let Some(v) = pagination {
-          if let Some(c) = v.cursor {
-            cards = cards.filter(cid.gt(i32::from_id(c)));
-          }
-
-          limit = v.page_size.into();
-          cards = cards.limit(1 + limit);
-        }
-
-        let color = panic::catch_unwind(|| a.color()).unwrap_or(None);
-
-        match color {
-          Some(CardColor::Black) => {
-            cards = cards.filter(is_black.eq(true));
-          }
-          Some(CardColor::White) => {
-            cards = cards.filter(is_black.eq(false));
-          }
-          _ => {}
-        }
-      }
-
-      let cards = cards
-        .select((cid, is_black, format_text, total_votes, average_rating))
-        .load::<models::Card>(&executor.context().db_con)?;
-
-      let has_more = cards.len() as i64 > limit;
-      let last_id = cards.iter().nth(limit as usize - 1).map(|v| v.id);
-
-      set.cards = Some(CardResult {
-        results: cards
-          .iter()
-          .take(limit as usize)
-          .map(|v| Card {
-            id: v.id,
-            format_text: v.format_text.to_owned(),
-            color: match v.is_black {
-              true => CardColor::Black,
-              _ => CardColor::White,
-            },
-            set: SetInfo {
-              id: set.id,
-              name: set.name.clone(),
-            },
-            total_votes: v.total_votes,
-            average_rating: v.average_rating,
-          })
-          .collect(),
-        last_cursor: last_id,
-        has_next_page: has_more,
-        random_seed: None,
-      });
-    }
-
-    Ok(set)
+    })
   }
 
+  /// This returns all of the card sets within the database,
+  /// or the matched sets when using the `search` parameter.
+  /// `search` allows for a full-text-search of the set name
   fn field_sets(
     &self,
     executor: &Executor<'_, Context>,
@@ -488,44 +467,78 @@ impl QueryFields for Query {
     search: Option<String>,
     pagination: Pagination,
   ) -> FieldResult<SetResult> {
-    use crate::schema::bb::parent_set::dsl::*;
+    let limit = pagination.page_size;
 
-    let mut sets = parent_set.order_by(id).into_boxed();
-
-    if let Some(v) = search {
-      sets = sets.filter(text_searchable_name.matches(plainto_tsquery(v)));
+    if limit > 1000 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Limit must be <= 1000 cards per query",
+        graphql_value!({"validation error": "Limit must be <= 1000 cards per query"}),
+      ));
+    } else if limit < 0 {
+      return FieldResult::Err(juniper::FieldError::new(
+        "Limit cannot be negative",
+        graphql_value!({"validation error": "Limit cannot be negative"}),
+      ));
     }
 
-    if let Some(p) = pagination.cursor {
-      sets = sets.filter(id.gt(i32::from_id(p)));
-    }
+    let mut get_sets = GetSets::default();
+    get_sets.n_results = Some(limit);
+    get_sets.search = search;
 
-    let limit = pagination.page_size as i64;
-    let sets = sets
-      .select((id, name))
-      .limit(1 + limit)
-      .load::<models::ParentSet>(&executor.context().db_con)?;
+    get_sets.cursor = pagination.cursor.map(|v| i32::from_id(v));
 
-    let has_more = sets.len() as i64 > limit;
-    let last_id = sets.iter().nth(limit as usize - 1).map(|v| v.id);
+    let con = &executor.context().db;
+    let db_sets = db::get_sets(con, &get_sets)?;
 
-    let sets = sets
+    let has_more = db_sets.iter().len() as i32 > limit;
+    let last_cursor = db_sets.iter().nth(limit as usize - 1).map(|r| r.id);
+
+    let db_sets = db_sets
       .iter()
       .take(limit as usize)
       .map(|s| SetInfo {
         id: s.id,
         name: s.name.to_owned(),
       })
-      .collect();
+      .collect::<Vec<_>>();
 
     Ok(SetResult {
-      results: sets,
-      last_cursor: last_id,
+      results: db_sets,
       has_next_page: has_more,
+      last_cursor: last_cursor,
     })
+  }
+
+  fn field_license(&self, _: &Executor<'_, Context>) -> FieldResult<Url> {
+    Ok(Url::parse(
+      "https://creativecommons.org/licenses/by-nc-sa/2.0/legalcode",
+    )?)
+  }
+
+  fn field_api_version(&self, _: &Executor<'_, Context>) -> FieldResult<String> {
+    Ok(String::from("0.1.0"))
+  }
+
+  fn field_authors(&self, _: &Executor<'_, Context>) -> FieldResult<Vec<String>> {
+    Ok(vec![
+      String::from("Nicholas Dolan"),
+      String::from("Cameron Otts"),
+      String::from("Grace Chenevert"),
+      String::from("Aaron Dentro"),
+      String::from("Patrick Dolan"),
+    ])
+  }
+
+  fn field_cards_against_humanity(
+    &self,
+    _: &Executor<'_, Context>,
+    _: &QueryTrail<'_, CardsAgainstHumanity, Walked>,
+  ) -> FieldResult<CardsAgainstHumanity> {
+    Ok(CardsAgainstHumanity {})
   }
 }
 
+/// Not currently implemented
 pub struct Mutation {}
 
 impl MutationFields for Mutation {
@@ -558,18 +571,20 @@ fn playground() -> HttpResponse {
 async fn graphql(
   schema: web::Data<Arc<Schema>>,
   data: web::Json<GraphQLRequest>,
-  db_pool: web::Data<DbPool>,
+  db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, Error> {
-  let ctx = Context {
-    db_con: db_pool.get().unwrap(),
-  };
+  let ctx = Context { db: db_pool };
 
-  let result = web::block(move || {
+  let res = web::block(move || {
     let res = data.execute(&schema, &ctx);
     Ok::<_, serde_json::error::Error>(serde_json::to_string(&res)?)
-  }).await?;
-
-  Ok(HttpResponse::Ok().content_type("application/json").body(result))
+  })
+  .await?;
+  Ok(
+    HttpResponse::Ok()
+      .content_type("application/json")
+      .body(res),
+  )
 }
 
 pub fn register(config: &mut web::ServiceConfig) {
@@ -579,4 +594,18 @@ pub fn register(config: &mut web::ServiceConfig) {
     .data(schema)
     .route("/", web::post().to(graphql))
     .route("/", web::get().to(playground));
+}
+
+pub struct CardsAgainstHumanity {}
+
+impl CardsAgainstHumanityFields for CardsAgainstHumanity {
+  fn field_url(&self, _: &Executor<'_, Context>) -> FieldResult<Url> {
+    Ok(Url::parse("https://cardsagainsthumanity.com/")?)
+  }
+
+  fn field_license(&self, _: &Executor<'_, Context>) -> FieldResult<Url> {
+    Ok(Url::parse(
+      "https://creativecommons.org/licenses/by-nc-sa/2.0/legalcode",
+    )?)
+  }
 }

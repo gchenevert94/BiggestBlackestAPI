@@ -1,3 +1,5 @@
+scalar Url
+
 schema {
     query: Query
     mutation: Mutation
@@ -23,7 +25,9 @@ type CardOperation {
 
 type Card {
     id: ID! @juniper(ownership: "owned")
+
     formatText: String!
+
     color: CardColor! @juniper(ownership: "owned")
     averageRating: Float @juniper(ownership: "owned")
     totalVotes: Int! @juniper(ownership: "owned")
@@ -51,7 +55,7 @@ type Set {
         color: CardColor
         pagination: Pagination = { pageSize: 10 }
         randomized: Boolean
-    ): CardResult
+    ): CardResult @juniper(ownership: "owned")
 }
 
 type SetInfo {
@@ -65,6 +69,11 @@ type SetResult {
     hasNextPage: Boolean! @juniper(ownership: "owned")
 }
 
+type CardsAgainstHumanity {
+     url: Url! @juniper(ownership: "owned")
+     license: Url! @juniper(ownership: "owned")
+}
+
 type Query {
     cards (
         search: String
@@ -73,13 +82,20 @@ type Query {
         sets: [ID!]
         randomized: Boolean
     ): CardResult! @juniper(ownership: "owned")
+
     set(
       id: ID!
     ): Set! @juniper(ownership: "owned")
+
     sets(
         search: String
         pagination: Pagination = { pageSize: 10 }
     ): SetResult! @juniper(ownership: "owned")
+
+    license: Url! @juniper(ownership: "owned")
+    apiVersion: String! @juniper(ownership: "owned")
+    authors: [String!]! @juniper(ownership: "owned")
+    cardsAgainstHumanity: CardsAgainstHumanity! @juniper(ownership: "owned")
 }
 
 input CreateCard {

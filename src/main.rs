@@ -1,60 +1,76 @@
-#[warn(unused_imports)]
-
-#[macro_use]
-extern crate diesel;
-extern crate diesel_full_text_search;
-extern crate base64;
-extern crate serde_derive;
-extern crate juniper;
-extern crate juniper_from_schema;
-
-use std::io;
+mod db;
+mod gql;
+mod models;
 
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
-use diesel::{
-    r2d2::{Pool, ConnectionManager, PooledConnection},
-    PgConnection
-};
+use dotenv::dotenv;
+use std::env;
+use std::io;
+use std::path::Path;
 
-mod schema;
-mod models;
-mod gql;
-mod db;
-
-pub type DbPool = Pool<ConnectionManager<PgConnection>>;
-pub type DbCon = PooledConnection<ConnectionManager<PgConnection>>;
+use db::{PgConfig, Pool, PoolConfiguration};
 
 pub struct Context {
-    db_con: DbCon
+  db: web::Data<Pool>,
 }
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info");
+  std::env::set_var("RUST_LOG", "actix_web=info");
 
-    dotenv::dotenv().ok();
+  dotenv().ok();
 
-    env_logger::init();
+  let pool_config = PoolConfiguration::default();
+  let pg_config = pg_config_from_env().expect("Must provide connection to database");
 
-    let db_pool = create_db_pool();
+  let pool = db::create_pool(pg_config, &pool_config);
 
-    // Start http server
-    HttpServer::new(move || {
-        App::new()
-            .data(db_pool.clone())
-            .configure(gql::register)
-            .wrap(middleware::Logger::default())
-            .default_service(web::route().to(|| HttpResponse::NotFound()))
-    })
-    .bind("127.0.0.1:8080")?
-    .start()
-    .await
+  env_logger::init();
+
+  // Start http server
+  HttpServer::new(move || {
+    App::new()
+      .data(pool.clone())
+      .configure(gql::register)
+      .wrap(middleware::Logger::default())
+      .default_service(web::route().to(|| HttpResponse::NotFound()))
+  })
+  .bind("127.0.0.1:8080")?
+  .start()
+  .await?;
+
+  Ok(())
 }
 
-fn create_db_pool() -> DbPool {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    Pool::builder()
-        .max_size(3)
-        .build(ConnectionManager::<PgConnection>::new(database_url))
-        .expect("failed to create db connection pool")
+pub fn pg_config_from_env() -> Result<PgConfig, String> {
+  let mut config = PgConfig::new();
+  if let Ok(host) = env::var("PG_HOST") {
+    config.host(host.as_str());
+  } else {
+    if Path::new("/run/postgresql").exists() {
+      config.host("/run/postgresql");
+    } else {
+      config.host("/tmp");
+    }
+  }
+  if let Ok(port_string) = env::var("PG_PORT") {
+    let port = port_string
+      .parse::<u16>()
+      .map_err(|_| format!("Invalid PG_PORT: {}", port_string))?;
+    config.port(port);
+  }
+  if let Ok(user) = env::var("PG_USER") {
+    config.user(user.as_str());
+  } else if let Ok(user) = env::var("USER") {
+    config.user(user.as_str());
+  } else {
+    return Err("Missing PG_USER. Fallback to USER failed as well.".into());
+  }
+  if let Ok(password) = env::var("PG_PASSWORD") {
+    config.password(password.as_str());
+  }
+  if let Ok(dbname) = env::var("PG_DBNAME") {
+    config.dbname(dbname.as_str());
+  }
+  Ok(config)
 }
