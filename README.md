@@ -23,6 +23,7 @@ This project was heavily inspired by the JSON Against Humanity project, and prov
   * Provides a search by set name  
   * Paginated results  
   * When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
+
 This project was built using `juniper-from-schema`, which analyzes the [[schema.graphql file][./schema.graphql]]. Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
 
 ## The Goal
