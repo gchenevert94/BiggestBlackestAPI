@@ -8,4 +8,4 @@ RUN rustup update
 RUN cargo install --path .
 RUN cargo build --release
 
-CMD ["target/release/bba"]
+CMD ["./target/release/bba"]

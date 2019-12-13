@@ -72,6 +72,7 @@ type SetResult {
 type CardsAgainstHumanity {
      url: Url! @juniper(ownership: "owned")
      license: Url! @juniper(ownership: "owned")
+     themeSong: Url! @juniper(ownership: "owned")
 }
 
 type Query {

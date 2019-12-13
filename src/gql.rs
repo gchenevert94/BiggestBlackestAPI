@@ -1,46 +1,3 @@
-/*
-    The purpose of our app to be containerized:
-        Everyone deserves to run their own instance and have fun
-        - Update with new OFFICIAL sources and expansions
-
-    When we host:
-        Use 100% the same utilities as the publicized container.
-        Collect cards, create decks, etc.
-        WE FULLY EXPECT TO STORE/KEEP OUR OWN SNAPSHOTS AND BACKUPS
-            pg_dump /mybackupfolder
-
-    Graphql schema {
-        license: "",
-        authors: "",
-        cardsAgainstHumanity: {
-            site,
-            license
-        }
-    }
-*/
-
-/**
- * WE GONNA MAKE A BLANK DATABASE
- * CREATE MIGRATIONS TABLE
- * DOCKER SNAPSHOT
- *
- * CREATE MIGRATION SCRIPT (init)
- * DOCKER SNAPSHOT
- *
- * CREATE MIGRATION SCRIPTS...
- * DOCKER SNAPSHOT
- *
- */
-
-/// THE SOLUTION
-/**
- * mkdir /usr/migrations
- * // NEW SET COMES
- * cp new_sets.sql /usr/migrations/
- *
- * CRONJOB
- * 0 0 * * * "psql --credentials-- < /usr/migrations/ && rm /usr/migrations/"
-*/
 use crate::{
   db::{self, GetCards, GetSets, Pool},
   Context,
@@ -606,6 +563,12 @@ impl CardsAgainstHumanityFields for CardsAgainstHumanity {
   fn field_license(&self, _: &Executor<'_, Context>) -> FieldResult<Url> {
     Ok(Url::parse(
       "https://creativecommons.org/licenses/by-nc-sa/2.0/legalcode",
+    )?)
+  }
+
+  fn field_theme_song(&self, _: &Executor<'_, Context>) -> FieldResult<Url> {
+    Ok(Url::parse(
+      "https://soundcloud.com/cards-against-humanity/a-good-game-of-cards"
     )?)
   }
 }

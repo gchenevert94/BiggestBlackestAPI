@@ -12,7 +12,7 @@ BEGIN
   VALUES (in_user_id, in_card_id, in_rating);
 
   UPDATE ONLY bb.card
-  SET 
+  SET
     average_rating = ((total_votes * COALESCE(average_rating, 0)) + in_rating) / (total_votes + 1)
     , total_votes = total_votes + 1
   WHERE id = in_card_id
