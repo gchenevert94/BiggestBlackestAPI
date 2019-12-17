@@ -312,6 +312,7 @@ impl QueryFields for Query {
     pagination: Pagination,
     set_ids: Option<Vec<juniper::ID>>,
     randomized: Option<bool>,
+    card_source: CardSource,
   ) -> FieldResult<CardResult> {
     // Error handling
     let limit = pagination.page_size;
@@ -338,6 +339,13 @@ impl QueryFields for Query {
 
     get_cards.previous_cursor = pagination.cursor.map(|v| i32::from_id(v));
     get_cards.search = search;
+
+    get_cards.user_submitted = match card_source {
+      CardSource::All => None,
+      CardSource::User => Some(true),
+      CardSource::Official => Some(false),
+      _ => unreachable!()
+    };
 
     match color {
       Some(CardColor::Black) => {
@@ -407,7 +415,7 @@ impl QueryFields for Query {
     _: &QueryTrail<'_, Set, Walked>,
     id: ID,
   ) -> FieldResult<Set> {
-    let set = db::get_set_by_id(&executor.context().db, id.parse().unwrap())?;
+    let set = db::get_set_by_id(&executor.context().db, id.parse().expect("Id was not valid"))?;
     Ok(Set {
       id: set.id,
       name: set.name,
@@ -530,7 +538,7 @@ async fn graphql(
   data: web::Json<GraphQLRequest>,
   db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, Error> {
-  let ctx = Context { db: db_pool };
+  let ctx = Context { db: db_pool, authenticated_user_id: 1 };
 
   let res = web::block(move || {
     let res = data.execute(&schema, &ctx);

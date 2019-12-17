@@ -40,7 +40,7 @@ pub fn get_cards(pool: &Pool, query: &GetCards) -> Result<Vec<GetCardResults>, A
   let mut client = client.get().map_err(|e| ErrorInternalServerError(e))?;
   let stmt = client
         .prepare_typed(
-            "SELECT id, format_text, is_black, parent_set_id, parent_set_name, total_votes, average_rating FROM bb.get_cards($1, $2, $3, $4, $5, $6, $7)",
+            "SELECT id, format_text, is_black, parent_set_id, parent_set_name, total_votes, average_rating FROM bb.get_cards($1, $2, $3, $4, $5, $6, $7, $8)",
             &[
                 Type::TEXT,
                 Type::BOOL,
@@ -49,6 +49,7 @@ pub fn get_cards(pool: &Pool, query: &GetCards) -> Result<Vec<GetCardResults>, A
                 Type::INT4_ARRAY,
                 Type::BOOL,
                 Type::FLOAT4,
+                Type::BOOL
             ],)
         .map_err(|e| ErrorInternalServerError(e))?;
 
@@ -63,6 +64,7 @@ pub fn get_cards(pool: &Pool, query: &GetCards) -> Result<Vec<GetCardResults>, A
         &query.card_sets,
         &query.get_random,
         &query.random_seed,
+        &query.user_submitted,
       ],
     )
     .map_err(|e| ErrorInternalServerError(e))?;
@@ -153,6 +155,7 @@ pub struct GetCards {
   pub card_sets: Option<Vec<i32>>,
   pub get_random: Option<bool>,
   pub random_seed: Option<f32>,
+  pub user_submitted: Option<bool>,
 }
 
 impl GetCards {
@@ -165,6 +168,7 @@ impl GetCards {
       card_sets: None,
       get_random: Some(false),
       random_seed: None,
+      user_submitted: Some(false),
     }
   }
 }
