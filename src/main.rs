@@ -4,15 +4,13 @@ mod models;
 
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
-use std::env;
-use std::io;
-use std::path::Path;
+use std::{env, io, path::Path};
 
 use db::{PgConfig, Pool, PoolConfiguration};
 
 pub struct Context {
   db: web::Data<Pool>,
-  authenticated_user_id: i32
+  authenticated_user_id: i32,
 }
 
 #[actix_rt::main]
