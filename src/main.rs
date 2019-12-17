@@ -12,6 +12,7 @@ use db::{PgConfig, Pool, PoolConfiguration};
 
 pub struct Context {
   db: web::Data<Pool>,
+  authenticated_user_id: i32
 }
 
 #[actix_rt::main]

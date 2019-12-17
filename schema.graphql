@@ -10,6 +10,12 @@ enum CardColor {
     WHITE
 }
 
+enum CardSource {
+    USER,
+    OFFICIAL,
+    ALL
+}
+
 input CardRating {
      id: ID!
      rating: Float!
@@ -82,6 +88,7 @@ type Query {
         pagination: Pagination = { pageSize: 10 }
         sets: [ID!]
         randomized: Boolean
+        cardSource: CardSource = OFFICIAL
     ): CardResult! @juniper(ownership: "owned")
 
     set(
