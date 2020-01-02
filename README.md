@@ -24,7 +24,48 @@ This project was heavily inspired by the JSON Against Humanity project, and prov
   * Paginated results  
   * When requesting a single set, the `set(id: "{set_id}")` query should be used, which provides access to the `Card` objects.  
 
-This project was built using `juniper-from-schema`, which analyzes the [/schema.graphql file](./schema.graphql "Schema File"). Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.
+This project was built using `juniper-from-schema`, which analyzes the [/schema.graphql file](./schema.graphql "Schema File"). Additionally, the playground (GET "/") provides a nice way to test out the API directly. The server is running on Actix-Web.  
+
+### Running the Project
+In the future, this project will have components running and hosted (hopefully), as well as maintained Docker images for the individual components.  
+To build and run the project locally, you will need **Rust nightly (^1.41)**, and an instance of PostgreSQL running. Modify the [`.env`](./.env "Environment Variable File") file to contain the proper `DATABASE_URL` variable pointing to your instance of the database.  
+The database is currently maintained using the [Diesel Cli](https://diesel.rs "Diesel ORM project") with scripts located in the [migrations/ folder](./migrations/ "Migration Directory"). To set up the database, after providing the `DATABASE_URL` key, run `diesel setup` in a terminal. This will automatically run all pending scripts, and mark them as run within the database.  
+Seeded data is initially available in the [seed/ directory](./seed/ "Seed folder").  
+Update the `.env` file with the proper `PG_USER`, `PG_PASSWORD`, `PG_HOST`, `PG_DBNAME`, and `HOST_BIND` with your required configuration.
+Build the GraphQL server by running `cargo build --release` (production build) or `cargo build` (debug build). The output is placed in `target/{debug | release}`, and the executable file should be `bba` in that directory.
+The GraphQL server can also be run with `cargo run --release` for a production build, or `cargo run` for a debug build.  
+
+### Recommended Use
+This project is intended to be separated into 3 separate components:  
+* Client  
+This is where games would be played. This includes apps/websites/terminals that would consume a Game Server's API. The logic and data should not be stored here (unless a cache, or a local state is needed).
+* Game Server  
+Logic for playing an actual game should be contained here. This should be used to consume the GraphQL Server's endpoints, and maintain game state such as:  
+```json
+{
+  "game-id": "GUID",
+  "players":
+    [
+      {
+        "id": "GUID",
+        "score": 1,
+        "cards": [
+          {
+            "id": "GUID"
+          }
+        ]
+      }
+    ],
+  "deck-cursor-id": "GUID",
+  "deck-shuffle-seed": "GUID",
+  "decks-used": ["Deck-ID"],
+  "card-czar": "GUID",
+  "white-card": "GUID" // This would also need it's own shuffle seed and cursor
+}
+```  
+All necessary hosting for this should utilize caches, resources, and distribution as needed for the actual implementation and hosting used.
+* GraphQL Server  
+This contains all data requests for accessing, searching, adding, rating, and all other GraphQL endpoint related requests. This should NOT contain client, or game related state since the requirements hosting environment could be distributed elsewhere.
 
 ## The Goal
 This project is was a tool to learn more about the Rust ecosystem, learn more about Docker and containerization, and build something in GraphQL. In addition, we also hope to create a client application which utilizes this repository as its backbone.

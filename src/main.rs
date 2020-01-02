@@ -4,24 +4,22 @@ mod models;
 
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use dotenv::dotenv;
-use std::env;
-use std::io;
-use std::path::Path;
+use std::{env, io, path::Path};
 
 use db::{PgConfig, Pool, PoolConfiguration};
 
 pub struct Context {
   db: web::Data<Pool>,
+  authenticated_user_id: i32,
 }
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {
-  std::env::set_var("RUST_LOG", "actix_web=info");
-
   dotenv().ok();
 
   let pool_config = PoolConfiguration::default();
   let pg_config = pg_config_from_env().expect("Must provide connection to database");
+  let host_binding = env::var("HOST_BIND").expect("Must provide a host and port to bind on");
 
   let pool = db::create_pool(pg_config, &pool_config);
 
@@ -36,7 +34,7 @@ async fn main() -> io::Result<()> {
       .wrap(middleware::Compress::default())
       .default_service(web::route().to(|| HttpResponse::NotFound()))
   })
-  .bind("127.0.0.1:8080")?
+  .bind(host_binding)?
   .start()
   .await?;
 
